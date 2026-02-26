@@ -37,7 +37,10 @@ import {
   MessageSquare,
   Wrench,
   Languages,
-  Send
+  Send,
+  FileCode,
+  Save,
+  Server
 } from 'lucide-react';
 import { cn } from './lib/utils';
 
@@ -62,6 +65,7 @@ const TRANSLATIONS = {
     macros: "Macros",
     ai_mod: "AI Modder",
     store: "Store",
+    editor: "Editor",
     config: "Config",
     boot: "BOOT",
     stop: "STOP",
@@ -82,7 +86,11 @@ const TRANSLATIONS = {
     disable: "Disable",
     apply: "Apply",
     applied: "Applied",
-    language: "Language"
+    language: "Language",
+    smali_editor: "Visual Smali Editor",
+    apply_patch: "Apply Patch",
+    mock_server: "Offline Server Emulation",
+    mock_status: "Mock Server Status"
   },
   ar: {
     engine: "المحرك",
@@ -93,6 +101,7 @@ const TRANSLATIONS = {
     macros: "ماكرو",
     ai_mod: "المعدل الذكي",
     store: "المتجر",
+    editor: "المحرر",
     config: "إعدادات",
     boot: "تشغيل",
     stop: "إيقاف",
@@ -113,7 +122,11 @@ const TRANSLATIONS = {
     disable: "تعطيل",
     apply: "تطبيق",
     applied: "تم التطبيق",
-    language: "اللغة"
+    language: "اللغة",
+    smali_editor: "محرر Smali البصري",
+    apply_patch: "تطبيق الباتش",
+    mock_server: "محاكاة السيرفر المحلي",
+    mock_status: "حالة السيرفر الوهمي"
   }
 };
 
@@ -363,8 +376,75 @@ const ScriptStoreView = ({ t }: { t: any }) => {
   );
 };
 
-// ... (Reuse existing components: MultiInstanceView, SecurityCloudView, PluginsView, FileManagerView, MacroEditorView, TerminalPanel) ...
-// Re-declaring for completeness in this file replacement
+const VisualEditorView = ({ t }: { t: any }) => {
+  return (
+    <div className="p-8 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-light flex items-center gap-2"><FileCode className="text-blue-400" /> {t.smali_editor}</h2>
+        <div className="flex gap-2">
+          <button className="bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-lg border border-emerald-500/50 hover:bg-emerald-500/30 flex items-center gap-2">
+            <Save size={16} /> {t.apply_patch}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
+        {/* File Tree */}
+        <div className="glass-panel rounded-xl p-4 flex flex-col gap-2 overflow-y-auto">
+           <div className="flex items-center gap-2 text-sm text-yellow-400 p-2 bg-white/5 rounded"><FolderOpen size={14} /> smali/com/game/rpg</div>
+           <div className="pl-4 space-y-1">
+              <div className="flex items-center gap-2 text-xs text-gray-300 p-2 hover:bg-white/10 rounded cursor-pointer"><FileText size={12} /> Player.smali</div>
+              <div className="flex items-center gap-2 text-xs text-cyan-300 bg-cyan-500/10 p-2 rounded cursor-pointer border border-cyan-500/30"><FileText size={12} /> Currency.smali</div>
+              <div className="flex items-center gap-2 text-xs text-gray-300 p-2 hover:bg-white/10 rounded cursor-pointer"><FileText size={12} /> Shop.smali</div>
+           </div>
+        </div>
+
+        {/* Editor */}
+        <div className="glass-panel rounded-xl col-span-2 flex flex-col overflow-hidden bg-[#0e0e14]">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black/20">
+             <span className="text-xs font-mono text-gray-400">Currency.smali</span>
+             <span className="text-xs text-gray-500">Smali Bytecode</span>
+          </div>
+          <div className="flex-1 p-4 font-mono text-sm text-gray-300 overflow-y-auto leading-relaxed">
+            <div className="flex gap-4">
+              <div className="text-gray-600 select-none text-right">
+                42<br/>43<br/>44<br/>45<br/>46<br/>47
+              </div>
+              <div>
+                <span className="text-gray-500">.method public get_Gold()I</span><br/>
+                &nbsp;&nbsp;<span className="text-purple-400">.locals</span> 1<br/>
+                &nbsp;&nbsp;<span className="text-gray-500"># Heuristic Match: Currency Getter</span><br/>
+                &nbsp;&nbsp;<span className="text-blue-400">const/16</span> v0, <span className="text-orange-400">0x2710</span> <span className="text-green-400"># 10000 (Patched)</span><br/>
+                &nbsp;&nbsp;<span className="text-purple-400">return</span> v0<br/>
+                <span className="text-gray-500">.end method</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mock Server Panel */}
+      <div className="mt-6 glass-panel rounded-xl p-4 flex items-center justify-between">
+         <div className="flex items-center gap-4">
+            <div className="p-2 bg-pink-500/20 rounded text-pink-400"><Server size={20} /></div>
+            <div>
+               <div className="font-medium text-white">{t.mock_server}</div>
+               <div className="text-xs text-gray-500">Intercepts /verify_purchase API calls</div>
+            </div>
+         </div>
+         <div className="flex items-center gap-3">
+            <div className="text-right">
+               <div className="text-xs font-bold text-emerald-400">RUNNING</div>
+               <div className="text-[10px] text-gray-500">127.0.0.1:8080</div>
+            </div>
+            <div className="w-10 h-5 bg-emerald-500/20 rounded-full border border-emerald-500/50 relative cursor-pointer">
+               <div className="absolute right-1 top-0.5 w-4 h-4 bg-emerald-400 rounded-full" />
+            </div>
+         </div>
+      </div>
+    </div>
+  );
+};
 
 const MultiInstanceView = () => (
     <div className="p-8 h-full flex flex-col space-y-6">
@@ -518,9 +598,10 @@ export default function App() {
         
         <div className="flex-1 w-full space-y-2">
           <SidebarItem icon={Monitor} label={t.engine} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} accentColor={accentColor} isRTL={isRTL} />
-          <SidebarItem icon={Copy} label={t.multi} active={activeTab === 'multi'} onClick={() => setActiveTab('multi')} accentColor={accentColor} isRTL={isRTL} />
+          <SidebarItem icon={FileCode} label={t.editor} active={activeTab === 'editor'} onClick={() => setActiveTab('editor')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Brain} label={t.ai_mod} active={activeTab === 'ai_mod'} onClick={() => setActiveTab('ai_mod')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Wrench} label={t.store} active={activeTab === 'store'} onClick={() => setActiveTab('store')} accentColor={accentColor} isRTL={isRTL} />
+          <SidebarItem icon={Copy} label={t.multi} active={activeTab === 'multi'} onClick={() => setActiveTab('multi')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Shield} label={t.security} active={activeTab === 'security'} onClick={() => setActiveTab('security')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Puzzle} label={t.plugins} active={activeTab === 'plugins'} onClick={() => setActiveTab('plugins')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={FolderOpen} label={t.files} active={activeTab === 'files'} onClick={() => setActiveTab('files')} accentColor={accentColor} isRTL={isRTL} />
@@ -577,6 +658,7 @@ export default function App() {
               className="h-full"
             >
               {activeTab === 'dashboard' && <DashboardView activeGame={activeGame} onGameSelect={setActiveGame} t={t} />}
+              {activeTab === 'editor' && <VisualEditorView t={t} />}
               {activeTab === 'multi' && <MultiInstanceView />}
               {activeTab === 'ai_mod' && <AIModdingView t={t} isRTL={isRTL} />}
               {activeTab === 'store' && <ScriptStoreView t={t} />}

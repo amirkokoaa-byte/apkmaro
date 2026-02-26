@@ -357,5 +357,106 @@ NexusDroid_Portable/
 ├── config.json          # User settings
 └── data/                # Virtual disks and user data (created on first run)
 ```
+
+## 12. AI Modding Engine & Auto-Patching (Part 5)
+
+### Heuristic Search & Pattern Matching (Regex)
+We use Python's `re` module to scan decompiled Smali code for currency-related patterns.
+
+```python
+# heuristic_scanner.py
+import re
+import os
+
+PATTERNS = {
+    "currency_getter": r"get(Gold|Coins|Gems|Diamonds|Money)",
+    "currency_setter": r"set(Gold|Coins|Gems|Diamonds|Money)",
+    "premium_check": r"is(Premium|Vip|Pro|Paid)",
+    "ads_check": r"show(Ad|Interstitial|Banner)"
+}
+
+def scan_smali(directory):
+    matches = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".smali"):
+                path = os.path.join(root, file)
+                with open(path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    for key, pattern in PATTERNS.items():
+                        if re.search(pattern, content, re.IGNORECASE):
+                            matches.append({"type": key, "file": path})
+    return matches
+```
+
+### Value Freezing (Smali Injection)
+To prevent currency decrease, we inject a NOP (No Operation) or modify the subtraction instruction.
+
+**Logic:**
+Find: `sub-int v0, v0, v1` (Subtract v1 from v0)
+Replace with: `nop` (Do nothing) OR `add-int v0, v0, v1` (Increase instead of decrease)
+
+### Automated Manifest Patching
+We use `xml.etree.ElementTree` to parse and modify `AndroidManifest.xml`.
+
+```python
+# manifest_patcher.py
+import xml.etree.ElementTree as ET
+
+def patch_manifest(manifest_path):
+    ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
+    tree = ET.parse(manifest_path)
+    root = tree.getroot()
+    
+    # Remove Permissions
+    for perm in root.findall("uses-permission"):
+        name = perm.get("{http://schemas.android.com/apk/res/android}name")
+        if "INTERNET" in name or "AD_ID" in name:
+            root.remove(perm)
+            print(f"Removed permission: {name}")
+
+    # Add Debuggable Flag
+    app = root.find("application")
+    app.set("{http://schemas.android.com/apk/res/android}debuggable", "true")
+    
+    tree.write(manifest_path)
+```
+
+### Signature Verification Bypass (Meta-Inf)
+To disable signature checks:
+1.  Delete `META-INF/*.RSA`, `META-INF/*.SF`, `META-INF/*.MF`.
+2.  Hook `java.security.Signature` using Frida or modify `PackageManagerService` in the emulator.
+
+### Offline Server Emulation (Local Proxy)
+We create a local Python server to intercept and mock API responses.
+
+```python
+# mock_server.py
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+class MockHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        # Intercept Purchase Verification
+        if "/verify_purchase" in self.path:
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            response = {"status": "success", "purchase": "verified", "gems": 99999}
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            self.send_response(404)
+
+def run_server():
+    server_address = ('127.0.0.1', 8080)
+    httpd = HTTPServer(server_address, MockHandler)
+    print('Mock Server running on port 8080...')
+    httpd.serve_forever()
+```
+
+**DNS Redirection:**
+Modify `/etc/hosts` in the Android Emulator:
+`127.0.0.1 api.game-server.com`
 ```
 ```
