@@ -70,6 +70,7 @@ const TRANSLATIONS = {
     boot: "BOOT",
     stop: "STOP",
     ready: "Ready to Play",
+    select_file: "Select File",
     drag_drop: "Drag & Drop .XAPK / .APK",
     install_info: "Automatically installs APK and extracts OBB files to",
     installed_apps: "Installed Apps",
@@ -106,6 +107,7 @@ const TRANSLATIONS = {
     boot: "تشغيل",
     stop: "إيقاف",
     ready: "جاهز للعب",
+    select_file: "اختر ملف",
     drag_drop: "اسحب وأفلت ملفات .XAPK / .APK",
     install_info: "تثبيت تلقائي للـ APK واستخراج ملفات OBB إلى",
     installed_apps: "التطبيقات المثبتة",
@@ -136,15 +138,26 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, accentColor, isRTL }:
   <button 
     onClick={onClick}
     className={cn(
-      "w-full p-4 flex flex-col items-center gap-2 transition-all duration-200",
-      isRTL ? "border-r-2" : "border-l-2",
+      "flex flex-col items-center gap-1 transition-all duration-200 shrink-0",
+      // Desktop: w-full, padding 4, border-l/r
+      "md:w-full md:p-4 md:border-y-0",
+      isRTL ? "md:border-r-2" : "md:border-l-2",
+      // Mobile: p-2, min-w-[70px], border-t
+      "p-2 min-w-[70px] border-t-2 md:border-t-0",
       active 
-        ? cn("bg-white/5", isRTL ? accentColor.replace('text-', 'border-r-') : accentColor.replace('text-', 'border-l-'), accentColor) 
+        ? cn(
+            "bg-white/5", 
+            // Desktop active border
+            isRTL ? "md:border-r-current" : "md:border-l-current",
+            // Mobile active border
+            "border-t-current",
+            accentColor
+          ) 
         : "border-transparent text-gray-400 hover:text-white hover:bg-white/5"
     )}
   >
-    <Icon size={24} />
-    <span className="text-[10px] uppercase tracking-wider font-medium">{label}</span>
+    <Icon size={20} className="md:w-6 md:h-6" />
+    <span className="text-[9px] md:text-[10px] uppercase tracking-wider font-medium truncate w-full text-center">{label}</span>
   </button>
 );
 
@@ -162,10 +175,10 @@ const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: s
 
 const AppIcon = ({ game, onClick }: { game: typeof GAMES[0], onClick: () => void }) => (
   <div onClick={onClick} className="flex flex-col items-center gap-2 group cursor-pointer">
-    <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-105 bg-gradient-to-br", game.color)}>
-      <Gamepad2 size={32} />
+    <div className={cn("w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-105 bg-gradient-to-br", game.color)}>
+      <Gamepad2 size={28} className="md:w-8 md:h-8" />
     </div>
-    <span className="text-xs text-gray-300 group-hover:text-white">{game.name}</span>
+    <span className="text-[10px] md:text-xs text-gray-300 group-hover:text-white text-center leading-tight">{game.name}</span>
   </div>
 );
 
@@ -188,24 +201,24 @@ const FileItem = ({ name, type, size }: { name: string, type: 'folder' | 'image'
 
 const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAMES[0] | null, onGameSelect: (game: typeof GAMES[0]) => void, t: any }) => {
   return (
-    <div className="p-8 space-y-8 h-full overflow-y-auto">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 h-full overflow-y-auto pb-24 md:pb-8">
       {/* Real-time Stats Overlay */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <StatCard label={t.cpu_usage} value="12%" icon={Cpu} color={activeGame?.accent || "text-emerald-400"} />
         <StatCard label={t.gpu_usage} value="34%" icon={Zap} color={activeGame?.accent || "text-orange-400"} />
         <StatCard label={t.ram} value="4.2 GB" icon={Monitor} color="text-blue-400" />
         <StatCard label={t.temp} value="42°C" icon={Wifi} color="text-red-400" />
       </div>
 
-      <div className={cn("glass-panel rounded-2xl p-6 min-h-[300px] flex flex-col items-center justify-center border-dashed border-2 relative overflow-hidden group transition-colors duration-500", activeGame ? activeGame.border : "border-white/10")}>
+      <div className={cn("glass-panel rounded-2xl p-6 min-h-[250px] md:min-h-[300px] flex flex-col items-center justify-center border-dashed border-2 relative overflow-hidden group transition-colors duration-500", activeGame ? activeGame.border : "border-white/10")}>
         <div className={cn("absolute inset-0 bg-gradient-to-b from-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500", activeGame ? `to-${activeGame.accent.split('-')[1]}-500/5` : "to-cyan-500/5")} />
         
         {activeGame ? (
           <div className="flex flex-col items-center gap-4 z-10">
-             <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl bg-gradient-to-br", activeGame.color)}>
-                <Gamepad2 size={48} />
+             <div className={cn("w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl bg-gradient-to-br", activeGame.color)}>
+                <Gamepad2 size={40} className="md:w-12 md:h-12" />
              </div>
-             <h2 className="text-2xl font-bold">{activeGame.name} Running</h2>
+             <h2 className="text-xl md:text-2xl font-bold text-center">{activeGame.name} Running</h2>
              <div className="flex gap-2">
                 <span className="px-3 py-1 bg-white/10 rounded-full text-xs border border-white/20">144 FPS</span>
                 <span className="px-3 py-1 bg-white/10 rounded-full text-xs border border-white/20">Vulkan</span>
@@ -213,12 +226,16 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
           </div>
         ) : (
           <>
-            <Smartphone size={64} className="text-gray-600 mb-4 group-hover:text-cyan-400 transition-colors" />
-            <h3 className="text-xl font-medium mb-2">{t.ready}</h3>
-            <p className="text-sm text-gray-500 max-w-md text-center">
+            <Smartphone size={48} className="text-gray-600 mb-4 group-hover:text-cyan-400 transition-colors md:w-16 md:h-16" />
+            <h3 className="text-lg md:text-xl font-medium mb-2 text-center">{t.ready}</h3>
+            <p className="text-sm text-gray-500 max-w-md text-center px-4">
               {t.drag_drop}
             </p>
-            <p className="text-xs text-gray-600 mt-2">{t.install_info} <span className="font-mono bg-white/10 px-1 rounded">/sdcard/Android/obb</span></p>
+            <button className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10 flex items-center gap-2">
+              <FolderOpen size={18} />
+              {t.select_file}
+            </button>
+            <p className="text-xs text-gray-600 mt-2 text-center px-4">{t.install_info} <span className="font-mono bg-white/10 px-1 rounded block md:inline mt-1 md:mt-0">/sdcard/Android/obb</span></p>
           </>
         )}
       </div>
@@ -227,7 +244,7 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
         <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
           <Download size={18} className={activeGame?.accent || "text-cyan-400"} /> {t.installed_apps}
         </h3>
-        <div className="grid grid-cols-4 md:grid-cols-6 gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 md:gap-6">
           {GAMES.map(game => (
             <AppIcon key={game.id} game={game} onClick={() => onGameSelect(game)} />
           ))}
@@ -587,16 +604,31 @@ export default function App() {
   const accentColor = activeGame?.accent || "text-cyan-400";
 
   return (
-    <div className={cn("flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-cyan-500/30", isRTL ? "flex-row-reverse" : "flex-row")} dir={isRTL ? "rtl" : "ltr"}>
-      {/* Sidebar */}
-      <div className={cn("w-20 flex flex-col items-center bg-black/40 backdrop-blur-xl z-20", isRTL ? "border-l border-white/10" : "border-r border-white/10")}>
-        <div className="p-4 mb-4">
+    <div className={cn("flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-hidden", isRTL ? "md:flex-row-reverse flex-col" : "md:flex-row flex-col")} dir={isRTL ? "rtl" : "ltr"}>
+      {/* Sidebar (Desktop) / Bottom Nav (Mobile) */}
+      <div className={cn(
+        "z-50 bg-black/40 backdrop-blur-xl transition-all",
+        // Desktop Styles
+        "md:w-20 md:h-full md:flex-col md:items-center md:border-b-0",
+        isRTL ? "md:border-l border-white/10" : "md:border-r border-white/10",
+        // Mobile Styles
+        "w-full h-20 fixed bottom-0 flex-row border-t border-white/10 overflow-x-auto no-scrollbar"
+      )}>
+        {/* Logo - Desktop Only */}
+        <div className="hidden md:block p-4 mb-4">
           <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-500", activeGame ? `bg-gradient-to-br ${activeGame.color}` : "bg-gradient-to-br from-cyan-500 to-blue-600")}>
             <Smartphone size={24} className="text-white" />
           </div>
         </div>
         
-        <div className="flex-1 w-full space-y-2">
+        {/* Nav Items Container */}
+        <div className={cn(
+          "flex",
+          // Desktop
+          "md:flex-col md:w-full md:space-y-2 md:flex-1",
+          // Mobile
+          "flex-row w-full items-center px-2 space-x-2 md:space-x-0 min-w-max"
+        )}>
           <SidebarItem icon={Monitor} label={t.engine} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={FileCode} label={t.editor} active={activeTab === 'editor'} onClick={() => setActiveTab('editor')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Brain} label={t.ai_mod} active={activeTab === 'ai_mod'} onClick={() => setActiveTab('ai_mod')} accentColor={accentColor} isRTL={isRTL} />
@@ -609,7 +641,8 @@ export default function App() {
           <SidebarItem icon={Settings} label={t.config} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} accentColor={accentColor} isRTL={isRTL} />
         </div>
 
-        <div className="p-4 w-full">
+        {/* Boot Button - Desktop Only */}
+        <div className="hidden md:block p-4 w-full">
           <button 
             onClick={() => setEngineRunning(!engineRunning)}
             className={cn(
@@ -626,12 +659,12 @@ export default function App() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col min-w-0 relative h-full md:h-auto pb-20 md:pb-0">
         {/* Window Controls */}
-        <div className="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-black/20 drag-region" dir="ltr">
+        <div className="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-black/20 drag-region shrink-0" dir="ltr">
           <div className="flex items-center gap-4">
-            <div className="text-xs text-gray-500 font-mono">NexusDroid v2026.1.0-alpha [KVM Enabled]</div>
-            <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-white/5 border border-white/5">
+            <div className="text-[10px] md:text-xs text-gray-500 font-mono truncate">NexusDroid v2026.1.0-alpha [KVM Enabled]</div>
+            <div className="hidden md:flex items-center gap-2 px-2 py-0.5 rounded bg-white/5 border border-white/5">
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                <span className="text-[10px] text-gray-400">Input Latency: 0.8ms (Rust Bridge)</span>
             </div>
@@ -655,7 +688,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="h-full overflow-hidden"
             >
               {activeTab === 'dashboard' && <DashboardView activeGame={activeGame} onGameSelect={setActiveGame} t={t} />}
               {activeTab === 'editor' && <VisualEditorView t={t} />}
