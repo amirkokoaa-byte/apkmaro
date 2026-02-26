@@ -5,15 +5,15 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QFont
 
-class ModernEmulatorGUI(QMainWindow):
+class SuperEmulatorGUI(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # إعدادات النافذة الرئيسية
-        self.setWindowTitle("محاكي ومعدل APK المتقدم 2026")
-        self.setMinimumSize(900, 650)
+        # إعدادات النافذة الأساسية
+        self.setWindowTitle("محاكي ومعدل APK الشامل - إصدار 2026")
+        self.setMinimumSize(1000, 700)
         
-        # تفعيل دعم اللغة العربية
+        # تفعيل دعم اللغة العربية (RTL)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         # الواجهة المركزية
@@ -21,125 +21,113 @@ class ModernEmulatorGUI(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        # السماح بالسحب والإفلات للنافذة الرئيسية
+        # هام جداً: السماح بالسحب والإفلات للنافذة بالكامل
         self.setAcceptDrops(True)
 
-        self.setup_header()
-        self.setup_drop_area()
-        self.setup_log_area()
-        self.setup_footer()
+        self.setup_ui()
+        self.apply_styles()
 
-        # تصميم CSS محسن
-        self.setStyleSheet("""
-            QMainWindow { background-color: #0f172a; }
-            QLabel { color: #f8fafc; font-family: 'Segoe UI', 'Arial'; }
-            QPushButton { 
-                background-color: #2563eb; color: white; border-radius: 8px; 
-                padding: 12px; font-weight: bold; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #3b82f6; }
-            QPushButton#SelectBtn { background-color: #10b981; } /* لون أخضر لزر الاختيار */
-            QPushButton#SelectBtn:hover { background-color: #059669; }
-            QFrame#DropArea {
-                border: 2px dashed #3b82f6; border-radius: 15px; background-color: #1e293b;
-            }
-            QTextEdit { 
-                background-color: #020617; color: #10b981; border: 1px solid #1e293b;
-                font-family: 'Consolas', monospace; border-radius: 5px; font-size: 13px;
-            }
-        """)
+    def setup_ui(self):
+        # 1. العنوان
+        header = QLabel("نظام تشغيل وتعديل ملفات APK/XAPK")
+        header.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(header)
 
-    def setup_header(self):
-        header_layout = QHBoxLayout()
-        title = QLabel("مركز تعديل وتشغيل التطبيقات الذكي")
-        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        header_layout.addWidget(title)
-        
-        self.ai_btn = QPushButton("مساعد الذكاء الاصطناعي ✨")
-        self.ai_btn.setFixedWidth(200)
-        header_layout.addWidget(self.ai_btn)
-        
-        self.main_layout.addLayout(header_layout)
-
-    def setup_drop_area(self):
-        # حاوية منطقة السحب
+        # 2. منطقة السحب والإفلات + زر الاختيار اليدوي
         self.drop_frame = QFrame()
         self.drop_frame.setObjectName("DropArea")
-        self.drop_frame.setMinimumHeight(200)
+        self.drop_frame.setMinimumHeight(250)
         
         drop_layout = QVBoxLayout(self.drop_frame)
         
-        self.drop_label = QLabel("قم بسحب ملف APK أو XAPK هنا")
-        self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.icon_label = QLabel("📁") # أيقونة تعبيرية
+        self.icon_label.setFont(QFont("Arial", 50))
+        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        drop_layout.addWidget(self.icon_label)
+
+        self.drop_label = QLabel("اسحب ملف الـ APK هنا")
         self.drop_label.setFont(QFont("Arial", 16))
+        self.drop_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         drop_layout.addWidget(self.drop_label)
 
-        # زر اختيار ملف يدوي
-        self.select_file_btn = QPushButton("أو إضغط هنا لاختيار ملف من الجهاز")
-        self.select_file_btn.setObjectName("SelectBtn")
-        self.select_file_btn.setFixedWidth(300)
-        self.select_file_btn.clicked.connect(self.open_file_dialog)
-        drop_layout.addWidget(self.select_file_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        
+        # زر "اختيار ملف" (الحل البديل والأضمن)
+        self.select_btn = QPushButton("أو اختر الملف من جهازك")
+        self.select_btn.setFixedWidth(250)
+        self.select_btn.clicked.connect(self.open_file_dialog)
+        drop_layout.addWidget(self.select_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
         self.main_layout.addWidget(self.drop_frame)
 
-    def setup_log_area(self):
-        self.log_label = QLabel("سجل العمليات (Logs):")
-        self.main_layout.addWidget(self.log_label)
-        
+        # 3. سجل العمليات
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
-        self.log_output.setPlaceholderText("بانتظار رفع الملفات...")
+        self.log_output.setPlaceholderText("بانتظار اختيار ملف لبدء العمل...")
         self.main_layout.addWidget(self.log_output)
 
-    def setup_footer(self):
-        footer_layout = QHBoxLayout()
-        
-        self.btn_mod = QPushButton("تعديل العملات/الجواهر")
-        self.btn_offline = QPushButton("تفعيل وضع الأوفلاين")
-        self.btn_run = QPushButton("تشغيل في المحاكي")
-        
-        footer_layout.addWidget(self.btn_mod)
-        footer_layout.addWidget(self.btn_offline)
-        footer_layout.addWidget(self.btn_run)
-        
-        self.main_layout.addLayout(footer_layout)
+    def apply_styles(self):
+        self.setStyleSheet("""
+            QMainWindow { background-color: #020617; }
+            QLabel { color: #f8fafc; }
+            QFrame#DropArea {
+                border: 3px dashed #1e40af;
+                border-radius: 20px;
+                background-color: #0f172a;
+            }
+            QPushButton {
+                background-color: #2563eb;
+                color: white;
+                border-radius: 10px;
+                padding: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #3b82f6; }
+            QTextEdit {
+                background-color: #000000;
+                color: #22c55e;
+                font-family: 'Consolas';
+                border: 1px solid #1e293b;
+                border-radius: 10px;
+            }
+        """)
 
-    # وظيفة اختيار ملف يدوي
+    # --- معالجة اختيار الملف يدوياً ---
     def open_file_dialog(self):
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "اختر ملف اللعبة", "", "Android Files (*.apk *.xapk);;All Files (*)"
+            self, "اختر ملف APK", "", "Android Files (*.apk *.xapk)"
         )
         if file_path:
-            self.process_file(file_path)
+            self.handle_file(file_path)
 
-    # معالجة السحب والإفلات
+    # --- معالجة السحب والإفلات ---
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
             event.accept()
-            self.drop_frame.setStyleSheet("background-color: #334155; border: 2px solid #60a5fa;")
+            self.drop_frame.setStyleSheet("background-color: #1e293b; border: 3px solid #60a5fa;")
         else:
             event.ignore()
 
+    def dragLeaveEvent(self, event):
+        self.apply_styles() # إعادة الشكل الأصلي عند خروج الملف
+
     def dropEvent(self, event: QDropEvent):
         files = [u.toLocalFile() for u in event.mimeData().urls()]
-        for file in files:
-            self.process_file(file)
-        self.drop_frame.setStyleSheet("")
+        for file_path in files:
+            self.handle_file(file_path)
+        self.apply_styles()
 
-    # دالة موحدة للتعامل مع الملف المختار
-    def process_file(self, file_path):
-        file_name = os.path.basename(file_path)
-        if file_path.lower().endswith(('.apk', '.xapk')):
-            self.log_output.append(f"<b>✅ تم تحميل الملف بنجاح:</b> {file_name}")
-            self.drop_label.setText(f"تم اختيار: {file_name}")
-            self.log_output.append(f"<i>المسار: {file_path}</i>")
-            self.log_output.append("-" * 50)
+    def handle_file(self, path):
+        file_name = os.path.basename(path)
+        if path.lower().endswith(('.apk', '.xapk')):
+            self.log_output.append(f"<b>✅ تم التعرف على:</b> {file_name}")
+            self.log_output.append(f"<i>المسار: {path}</i>")
+            self.drop_label.setText(f"تم تحميل: {file_name}")
+            self.log_output.append("-" * 30)
         else:
-            self.log_output.append(f"<b>❌ خطأ:</b> الملف {file_name} ليس بصيغة APK مدعومة.")
+            self.log_output.append(f"<b>❌ خطأ:</b> الملف {file_name} ليس بصيغة أندرويد مدعومة.")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ModernEmulatorGUI()
+    window = SuperEmulatorGUI()
     window.show()
     sys.exit(app.exec())
