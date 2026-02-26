@@ -200,6 +200,33 @@ const FileItem = ({ name, type, size }: { name: string, type: 'folder' | 'image'
 // --- Main Views ---
 
 const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAMES[0] | null, onGameSelect: (game: typeof GAMES[0]) => void, t: any }) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.apk') || file.name.endsWith('.xapk'))) {
+      setSelectedFile(file);
+    }
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8 h-full overflow-y-auto pb-24 md:pb-8">
       {/* Real-time Stats Overlay */}
@@ -210,8 +237,12 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
         <StatCard label={t.temp} value="42°C" icon={Wifi} color="text-red-400" />
       </div>
 
-      <div className={cn("glass-panel rounded-2xl p-6 min-h-[250px] md:min-h-[300px] flex flex-col items-center justify-center border-dashed border-2 relative overflow-hidden group transition-colors duration-500", activeGame ? activeGame.border : "border-white/10")}>
-        <div className={cn("absolute inset-0 bg-gradient-to-b from-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500", activeGame ? `to-${activeGame.accent.split('-')[1]}-500/5` : "to-cyan-500/5")} />
+      <div 
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        className={cn("glass-panel rounded-2xl p-6 min-h-[250px] md:min-h-[300px] flex flex-col items-center justify-center border-dashed border-2 relative overflow-hidden group transition-colors duration-500", activeGame ? activeGame.border : "border-white/10", selectedFile ? "border-emerald-500/50 bg-emerald-500/5" : "")}
+      >
+        <div className={cn("absolute inset-0 bg-gradient-to-b from-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none", activeGame ? `to-${activeGame.accent.split('-')[1]}-500/5` : "to-cyan-500/5")} />
         
         {activeGame ? (
           <div className="flex flex-col items-center gap-4 z-10">
@@ -224,19 +255,50 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
                 <span className="px-3 py-1 bg-white/10 rounded-full text-xs border border-white/20">Vulkan</span>
              </div>
           </div>
+        ) : selectedFile ? (
+          <div className="flex flex-col items-center gap-4 z-10 animate-in fade-in zoom-in duration-300">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl bg-gradient-to-br from-emerald-500 to-teal-700">
+              <FileCode size={40} className="md:w-12 md:h-12" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-xl md:text-2xl font-bold text-white">{selectedFile.name}</h2>
+              <p className="text-sm text-emerald-400 mt-1">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready to Mod</p>
+            </div>
+            
+            <div className="flex gap-3 mt-4">
+              <button className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+                <Wrench size={18} /> {t.apply_patch || "Mod APK"}
+              </button>
+              <button onClick={clearFile} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10">
+                <X size={18} />
+              </button>
+            </div>
+          </div>
         ) : (
-          <>
+          <div className="relative z-10 flex flex-col items-center">
             <Smartphone size={48} className="text-gray-600 mb-4 group-hover:text-cyan-400 transition-colors md:w-16 md:h-16" />
             <h3 className="text-lg md:text-xl font-medium mb-2 text-center">{t.ready}</h3>
             <p className="text-sm text-gray-500 max-w-md text-center px-4">
               {t.drag_drop}
             </p>
-            <button className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10 flex items-center gap-2">
+            
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept=".apk,.xapk"
+              className="hidden"
+            />
+            
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10 flex items-center gap-2 cursor-pointer relative z-20"
+            >
               <FolderOpen size={18} />
               {t.select_file}
             </button>
             <p className="text-xs text-gray-600 mt-2 text-center px-4">{t.install_info} <span className="font-mono bg-white/10 px-1 rounded block md:inline mt-1 md:mt-0">/sdcard/Android/obb</span></p>
-          </>
+          </div>
         )}
       </div>
 
