@@ -1,0 +1,5 @@
+{
+  "name": "NexusDroid-Emulator-UI",
+  "description": "A high-fidelity web UI prototype for an advanced Android Virtualization Engine featuring Glassmorphism design, hardware simulation settings, and a simulated terminal.",
+  "requestFramePermissions": []
+}
