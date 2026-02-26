@@ -541,5 +541,150 @@ Automated pipeline for finalizing the APK.
       --out final.apk \
       output_aligned.apk
     ```
+
+## 14. Anti-Encryption & Auto-Update Engine (Part 7)
+
+### Anti-Tamper & Obfuscation Bypass (AI-Assisted)
+For protectors like DexGuard/Arxan, we use AI to identify "Injection Points" rather than full deobfuscation.
+
+**AI Strategy:**
+1.  **Entropy Analysis:** High entropy methods often contain decryption logic.
+2.  **API Monitoring:** Hook `System.loadLibrary`, `PackageManager.getPackageInfo` (signature check), and `System.exit`.
+3.  **Injection Point:** The AI suggests hooking the *return* of the integrity check method to always return `true`.
+
+### String Decryption (Automated)
+Many obfuscators hide strings using Base64 or XOR. We use a Python script to statically decrypt them in Smali.
+
+```python
+# string_decryptor.py
+import base64
+
+def decrypt_smali_strings(smali_content):
+    # Pattern: const-string v0, "SGVsbG8=" (Base64)
+    # Logic: Find Base64 strings and replace with decoded value
+    pass 
+```
+
+### Live Memory Scanning (RAM Modification)
+Similar to Cheat Engine, but via ADB/Frida for Android.
+
+**Workflow:**
+1.  **Attach:** `frida -U -n com.game.rpg`
+2.  **Scan:** Search for an integer (e.g., Gold: 1050).
+3.  **Filter:** User spends gold -> New value: 1000 -> Search again.
+4.  **Modify:** Write new value (999999) to the found address.
+
+```javascript
+// Frida Memory Scan Snippet
+var ranges = Process.enumerateRanges('rw-');
+Memory.scan(ranges[0].base, ranges[0].size, "04 1A", {
+  onMatch: function(address, size){
+    console.log("Found match at " + address);
+    // Memory.writeInt(address, 999999);
+  }
+});
+```
+
+### Cloud-Based Mod Library (Auto-Update)
+The engine checks a remote JSON endpoint for game updates.
+
+```json
+// https://api.nexusdroid.com/mods/latest.json
+{
+  "com.pubg.kmobile": {
+    "version": "3.1.0",
+    "patches": [
+      {"name": "90 FPS", "url": "https://cdn/patches/pubg_90fps_v3.json"},
+      {"name": "No Recoil", "url": "https://cdn/patches/pubg_recoil_v1.lua"}
+    ]
+  }
+}
+```
+
+### Universal Game Engine Support (Unity/Unreal)
+
+**Unity (IL2CPP):**
+We use **Cpp2IL** or **Il2CppDumper** to recover method names from `global-metadata.dat`.
+```bash
+# Dump C++ headers and dummy DLLs
+./Il2CppDumper libil2cpp.so global-metadata.dat output_dir
+```
+
+**Unreal Engine (UE4/UE5):**
+We use **UE4Dumper** to find GNames and GWorld offsets for SDK generation.
+
+## 15. Embedded Android Runtime & Input System (Part 8)
+
+### Core Runner (Embedded QEMU Container)
+To embed the Android display inside PyQt6, we use a **Shared Memory Framebuffer** (shm) or a TCP socket stream from QEMU.
+
+**QEMU Launch with VNC:**
+```bash
+qemu-system-x86_64 ... -vnc :0
+```
+
+**PyQt6 VNC Widget:**
+We use a VNC client library (like `python-vnc-viewer`) to render the QEMU output onto a `QWidget`.
+
+```python
+# embedded_runner.py (Concept)
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtGui import QImage, QPainter
+
+class AndroidDisplayWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        # Connect to QEMU VNC or Shared Memory
+        self.frame_buffer = SharedMemoryBuffer("android_fb")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        # Draw the current frame from the buffer
+        image = QImage(self.frame_buffer.data, 1920, 1080, QImage.Format.Format_RGB32)
+        painter.drawImage(0, 0, image)
+```
+
+### Input Mapping System (Keymapping)
+We map keyboard/mouse events to ADB input commands or direct `evdev` injection.
+
+**Mapping Logic:**
+*   **WASD:** Maps to `input swipe x1 y1 x2 y2` (Joystick simulation).
+*   **Click:** Maps to `input tap x y`.
+*   **Gamepad (SDL2):** We use `pysdl2` to read controller inputs and translate them to touch events.
+
+```python
+# keymapper.py
+def handle_key_press(key):
+    if key == Qt.Key.Key_W:
+        inject_touch_move(x, y - 10) # Move Joystick Up
+    elif key == Qt.Key.Key_Space:
+        inject_tap(jump_button_coords)
+```
+
+### Real-time Performance Overlay
+We use a transparent `QWidget` overlay on top of the game view.
+
+**Turbo Mode:**
+Sets the process priority of QEMU to "High" and adjusts CPU affinity.
+```python
+import psutil
+def enable_turbo_mode(qemu_pid):
+    p = psutil.Process(qemu_pid)
+    p.nice(psutil.HIGH_PRIORITY_CLASS) # Windows
+    # p.nice(-10) # Linux
+```
+
+### Instant Testing & Hot Reload
+To apply changes without restarting the emulator:
+1.  **Hot Install:** `adb install -r -g modified.apk` (Reinstall keeping data).
+2.  **Activity Restart:** `adb shell am start -n com.package/.MainActivity`.
+
+### Audio & Video Recording
+We use **FFmpeg** to capture the QEMU window or framebuffer stream.
+
+```bash
+ffmpeg -f gdigrab -framerate 60 -i title="NexusDroid Emulator" \
+  -c:v libx264 -preset ultrafast -qp 0 output.mp4
+```
 ```
 ```

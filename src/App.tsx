@@ -580,7 +580,7 @@ export default function App() {
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [engineRunning, setEngineRunning] = useState(false);
   const [activeGame, setActiveGame] = useState<typeof GAMES[0] | null>(null);
-  const [lang, setLang] = useState<'en' | 'ar'>('en');
+  const [lang, setLang] = useState<'en' | 'ar'>('ar');
 
   const t = TRANSLATIONS[lang];
   const isRTL = lang === 'ar';
