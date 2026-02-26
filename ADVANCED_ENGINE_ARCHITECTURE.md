@@ -331,12 +331,14 @@ To create a single portable executable for Windows:
 
 ### 1. Python (GUI & Logic)
 Use **PyInstaller** to bundle the Python environment and dependencies.
+The official GUI entry point is provided in `native_gui.py`.
+
 ```bash
 pyinstaller --noconfirm --onefile --windowed --icon "icon.ico" \
     --add-data "bin/qemu;bin/qemu" \
     --add-data "bin/adb;bin/adb" \
     --add-data "plugins;plugins" \
-    --name "NexusDroid" main.py
+    --name "NexusDroid" native_gui.py
 ```
 
 ### 2. C++ / Rust (Engine)
