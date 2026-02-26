@@ -458,5 +458,88 @@ def run_server():
 **DNS Redirection:**
 Modify `/etc/hosts` in the Android Emulator:
 `127.0.0.1 api.game-server.com`
+
+## 13. Execution Engine & Resource Optimization (Part 6)
+
+### Asynchronous Processing (QThread)
+To prevent GUI freezing, all heavy operations (Decompile, Build, Sign) run in a separate thread.
+
+```python
+# In native_gui.py
+class WorkerThread(QThread):
+    progress = pyqtSignal(int)
+    log = pyqtSignal(str)
+    finished = pyqtSignal()
+
+    def run(self):
+        self.log.emit("Starting process...")
+        self.progress.emit(10)
+        # ... Heavy work ...
+        self.progress.emit(100)
+        self.finished.emit()
+```
+
+### XAPK & Split-APKs Assembly
+Logic to handle `.xapk` (which is just a zip) and Split APKs (APKM/AAB).
+
+**Workflow:**
+1.  **Extract:** Unzip `.xapk`.
+2.  **OBB Handling:** Move `Android/obb/com.game` to the emulator's shared folder.
+3.  **Split APK Merging:** Use `bundletool` to merge split APKs into a single universal APK for easier patching.
+    ```bash
+    java -jar bundletool.jar build-apks --bundle=app.aab --output=app.apks --mode=universal
+    ```
+    *Note: For Split APKs installed directly, we use `adb install-multiple base.apk config.arm64.apk ...`*
+
+### Integrated Android Kernel (Standalone)
+To make the emulator portable:
+1.  **Download AOSP Image:** Get a generic x86_64 system image (e.g., from Android Studio or AOSP build).
+2.  **Structure:**
+    ```
+    bin/
+    └── android/
+        ├── system.img
+        ├── vendor.img
+        ├── ramdisk.img
+        └── kernel-ranchu
+    ```
+3.  **QEMU Launch Command:**
+    ```bash
+    qemu-system-x86_64 -m 4096 -smp 4 \
+      -kernel bin/android/kernel-ranchu \
+      -append "console=ttyS0 androidboot.hardware=ranchu" \
+      -drive if=none,index=0,id=system,file=bin/android/system.img \
+      -device virtio-blk-pci,drive=system \
+      ...
+    ```
+
+### GPU Passthrough (VFIO)
+For native performance (144Hz+), we pass the host GPU to the VM.
+
+**Requirements:**
+*   Linux Host (Windows requires WHPX/HAXM which is slower than VFIO).
+*   IOMMU enabled in BIOS.
+
+**QEMU Flags:**
+```bash
+-device vfio-pci,host=01:00.0,x-vga=on,multifunction=on
+```
+*Note: On Windows, we fall back to **ANGLE** (Translate OpenGL to DirectX) or **WHPX** (Windows Hypervisor Platform) for acceleration.*
+
+### One-Click Signer & Optimizer
+Automated pipeline for finalizing the APK.
+
+1.  **Zipalign:** Aligns data on 4-byte boundaries for RAM optimization.
+    ```bash
+    zipalign -v -p 4 input.apk output_aligned.apk
+    ```
+2.  **APKSigner (V2/V3):** Signs the APK to satisfy Android security.
+    ```bash
+    java -jar apksigner.jar sign --ks debug.keystore \
+      --ks-pass pass:android \
+      --key-pass pass:android \
+      --out final.apk \
+      output_aligned.apk
+    ```
 ```
 ```
