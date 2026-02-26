@@ -202,4 +202,158 @@ class ResourceManager:
     def set_process_priority(self, process_name, priority):
         # Implementation to change nice value or Windows priority class
         pass
+
+## 6. Security & Anti-Detection
+
+### Root Masking (KernelSU / Magisk Hide)
+Instead of traditional `su` binaries which are easily detected, we use **KernelSU**. This embeds su directly into the kernel, making it invisible to userspace applications unless explicitly granted.
+
+**Implementation Logic:**
+1.  **Kernel Patch:** Modify the Android kernel source (`fs/exec.c`) to intercept `execve` calls.
+2.  **Allowlist:** Only grant root if the calling package ID is in the allowlist database.
+3.  **Mount Namespace:** Use `unshare(CLONE_NEWNS)` to unmount root-related paths (`/sbin/su`, `/system/xbin/su`) for non-allowed apps.
+
+### Encrypted Sandbox (QCOW2 LUKS)
+To isolate the emulator:
+1.  Use QEMU's native QCOW2 encryption.
+2.  **Command:** `qemu-img create -f qcow2 --object secret,id=sec0,data=PASSWORD -o encrypt.format=luks,encrypt.key-secret=sec0 android_secure.qcow2 64G`
+3.  This ensures that even if the host is compromised, the Android data remains encrypted at rest.
+
+## 7. Multi-Instance Sync & Cloud
+
+### Multi-Instance Sync (Input Broadcasting)
+The "Sync Operations" feature works by capturing input from the "Master" instance and broadcasting it to "Slave" instances via a local socket server.
+
+```python
+# sync_server.py
+def broadcast_input(event):
+    for instance_socket in connected_instances:
+        if instance_socket != master_socket:
+            instance_socket.send(event)
+```
+
+### Cloud Sync (Google Drive API)
+Use the Google Drive REST API to upload/download snapshots.
+
+1.  **Snapshot:** `virsh snapshot-create-as --domain NexusDroid --name snap1`
+2.  **Upload:** Upload the `.qcow2` delta or the snapshot XML to a specific App Folder in Drive.
+
+## 8. Plugin System Architecture
+
+We use a **Shared Library** approach (DLL/so) or a **Python Scripting Interface**.
+
+**Structure:**
+```
+/plugins
+  /fps_booster
+    plugin.json  (Manifest)
+    main.py      (Entry Point)
+    icon.png
+```
+
+**Loader Logic (Python):**
+```python
+import importlib
+import os
+
+def load_plugins():
+    plugin_dir = "./plugins"
+    for folder in os.listdir(plugin_dir):
+        if os.path.exists(f"{plugin_dir}/{folder}/main.py"):
+            spec = importlib.util.spec_from_file_location("plugin_mod", f"{plugin_dir}/{folder}/main.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Register Plugin UI
+            ui.add_sidebar_item(module.ICON, module.NAME, module.on_click)
+
+## 9. AI Modding Assistant (Gemini Integration)
+
+The AI Assistant acts as a specialized Reverse Engineering copilot.
+
+**Workflow:**
+1.  **Decompile:** User selects APK -> Engine runs `apktool d app.apk`.
+2.  **Context Loading:** The Engine loads relevant Smali files (e.g., `PlayerCurrency.smali`) into the LLM context window.
+3.  **Prompt Engineering:**
+    ```text
+    System: You are an expert Android Reverse Engineer. Speak Arabic.
+    User: "أريد تعديل الجواهر" (I want to edit gems)
+    Context: [Content of PlayerCurrency.smali]
+    AI Response: "Found method 'getGems'. Change line 45 'const/4 v0, 0x0' to 'const/16 v0, 0x2710' to get 10,000 gems."
+    ```
+
+## 10. Auto-Patching & Scripting Store
+
+### Patch Format (.json)
+We define a standard JSON format for community patches.
+
+```json
+{
+  "name": "Unlimited Gems",
+  "game_package": "com.game.rpg",
+  "version_code": 1024,
+  "author": "NexusModder",
+  "actions": [
+    {
+      "type": "hex_replace",
+      "file": "lib/arm64-v8a/libil2cpp.so",
+      "offset": "0x1A4F20",
+      "original": "00 00 A0 E3",
+      "patched": "FF FF A0 E3"
+    },
+    {
+      "type": "smali_inject",
+      "file": "smali/com/game/rpg/Currency.smali",
+      "method": "get_Gold",
+      "code": "const/16 v0, 0x9999\nreturn v0"
+    }
+  ]
+}
+```
+
+### Frida Hook Integration
+The GUI generates a Frida script wrapper automatically.
+
+```javascript
+// Generated Wrapper
+Java.perform(function() {
+    var CurrencyClass = Java.use("com.game.rpg.Currency");
+    CurrencyClass.get_Gold.implementation = function() {
+        console.log("[NexusDroid] Hooked get_Gold");
+        return 999999;
+    };
+});
+```
+
+## 11. Final Packaging & Deployment (Portable .exe)
+
+To create a single portable executable for Windows:
+
+### 1. Python (GUI & Logic)
+Use **PyInstaller** to bundle the Python environment and dependencies.
+```bash
+pyinstaller --noconfirm --onefile --windowed --icon "icon.ico" \
+    --add-data "bin/qemu;bin/qemu" \
+    --add-data "bin/adb;bin/adb" \
+    --add-data "plugins;plugins" \
+    --name "NexusDroid" main.py
+```
+
+### 2. C++ / Rust (Engine)
+Compile the Core Engine as a static binary to avoid DLL dependency issues.
+*   **Rust:** `cargo build --release --target x86_64-pc-windows-msvc`
+*   **C++:** Use `/MT` (Multi-threaded) flag in MSVC to link CRT statically.
+
+### 3. Embedded Resources
+*   **QEMU/KVM:** Bundle a minimal QEMU build (stripped of unused architectures).
+*   **Android Image:** The `android.qcow2` is too large to embed directly. The installer/launcher should download this on first run from a CDN to keep the initial `.exe` small (~150MB).
+
+### 4. Directory Structure (Portable)
+```
+NexusDroid_Portable/
+├── NexusDroid.exe       # The PyInstaller wrapper
+├── config.json          # User settings
+└── data/                # Virtual disks and user data (created on first run)
+```
+```
 ```

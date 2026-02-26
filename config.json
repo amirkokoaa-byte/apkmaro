@@ -1,0 +1,50 @@
+{
+  "app_settings": {
+    "version": "2026.1.0-alpha",
+    "language": "ar",
+    "theme": "dark",
+    "rtl_mode": true,
+    "update_channel": "stable"
+  },
+  "paths": {
+    "emulator_engine": "./bin/qemu-system-x86_64.exe",
+    "adb_binary": "./bin/platform-tools/adb.exe",
+    "virtual_disk": "./data/images/android_secure.qcow2",
+    "shared_folder": "./data/shared",
+    "plugins_dir": "./plugins",
+    "scripts_dir": "./scripts",
+    "patches_dir": "./patches"
+  },
+  "hardware_profile": {
+    "cpu_cores": 4,
+    "ram_mb": 4096,
+    "gpu_mode": "vulkan_passthrough",
+    "refresh_rate": 144,
+    "spoofing": {
+      "model": "Samsung Galaxy S24 Ultra",
+      "manufacturer": "Samsung",
+      "imei": "864290041293847",
+      "mac": "00:1B:44:11:3A:B7"
+    }
+  },
+  "security": {
+    "root_masking": true,
+    "encrypted_sandbox": true,
+    "vpn_enabled": false,
+    "vpn_config": {
+      "provider": "virtual_gps",
+      "location": "New York, US"
+    }
+  },
+  "ai_assistant": {
+    "provider": "gemini",
+    "api_key_env": "GEMINI_API_KEY",
+    "model": "gemini-1.5-pro-latest",
+    "context_window": 1000000
+  },
+  "cloud_sync": {
+    "provider": "google_drive",
+    "auto_backup": true,
+    "backup_interval_min": 60
+  }
+}
