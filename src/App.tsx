@@ -199,8 +199,10 @@ const FileItem = ({ name, type, size }: { name: string, type: 'folder' | 'image'
 
 // --- Main Views ---
 
-const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAMES[0] | null, onGameSelect: (game: typeof GAMES[0]) => void, t: any }) => {
+const DashboardView = ({ activeGame, onGameSelect, onOpenRunner, t }: { activeGame: typeof GAMES[0] | null, onGameSelect: (game: typeof GAMES[0]) => void, onOpenRunner: () => void, t: any }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isPatching, setIsPatching] = useState(false);
+  const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,6 +229,34 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handlePatch = () => {
+    if (!selectedFile) return;
+    setIsPatching(true);
+    setProgress(0);
+
+    // Simulate patching process
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setIsPatching(false);
+            // Launch the patched game
+            onGameSelect({
+              id: 'custom-apk',
+              name: selectedFile.name.replace(/\.(x)?apk$/i, ''),
+              color: 'from-emerald-600 to-teal-800',
+              accent: 'text-emerald-400',
+              border: 'border-emerald-500/50'
+            });
+          }, 500);
+          return 100;
+        }
+        return prev + 5; // Increment progress
+      });
+    }, 100); // Speed of simulation
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8 h-full overflow-y-auto pb-24 md:pb-8">
       {/* Real-time Stats Overlay */}
@@ -250,29 +280,54 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
                 <Gamepad2 size={40} className="md:w-12 md:h-12" />
              </div>
              <h2 className="text-xl md:text-2xl font-bold text-center">{activeGame.name} Running</h2>
-             <div className="flex gap-2">
+             <div className="flex gap-2 mb-2">
                 <span className="px-3 py-1 bg-white/10 rounded-full text-xs border border-white/20">144 FPS</span>
                 <span className="px-3 py-1 bg-white/10 rounded-full text-xs border border-white/20">Vulkan</span>
              </div>
+             <button 
+               onClick={onOpenRunner}
+               className="px-8 py-3 bg-white text-black hover:bg-gray-200 rounded-full font-bold shadow-lg shadow-white/10 transition-all flex items-center gap-2 animate-pulse"
+             >
+               <Play size={20} fill="currentColor" /> {t.boot || "Play Now"}
+             </button>
           </div>
         ) : selectedFile ? (
-          <div className="flex flex-col items-center gap-4 z-10 animate-in fade-in zoom-in duration-300">
+          <div className="flex flex-col items-center gap-4 z-10 animate-in fade-in zoom-in duration-300 w-full max-w-md">
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl bg-gradient-to-br from-emerald-500 to-teal-700">
               <FileCode size={40} className="md:w-12 md:h-12" />
             </div>
-            <div className="text-center">
-              <h2 className="text-xl md:text-2xl font-bold text-white">{selectedFile.name}</h2>
+            <div className="text-center w-full">
+              <h2 className="text-xl md:text-2xl font-bold text-white truncate px-4">{selectedFile.name}</h2>
               <p className="text-sm text-emerald-400 mt-1">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB • Ready to Mod</p>
             </div>
             
-            <div className="flex gap-3 mt-4">
-              <button className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
-                <Wrench size={18} /> {t.apply_patch || "Mod APK"}
-              </button>
-              <button onClick={clearFile} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10">
-                <X size={18} />
-              </button>
-            </div>
+            {isPatching ? (
+              <div className="w-full space-y-2 mt-4 px-8">
+                <div className="flex justify-between text-xs text-emerald-300">
+                  <span>Applying Patches...</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="h-2 bg-black/40 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-500 transition-all duration-100 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-center text-gray-400 pt-1">Injecting Smali Hooks & Bypassing Security</p>
+              </div>
+            ) : (
+              <div className="flex gap-3 mt-4">
+                <button 
+                  onClick={handlePatch}
+                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                >
+                  <Wrench size={18} /> {t.apply_patch || "Mod APK"}
+                </button>
+                <button onClick={clearFile} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10">
+                  <X size={18} />
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="relative z-10 flex flex-col items-center">
@@ -316,6 +371,84 @@ const DashboardView = ({ activeGame, onGameSelect, t }: { activeGame: typeof GAM
   );
 };
 
+const CoreRunnerView = ({ t, activeGame }: { t: any, activeGame: typeof GAMES[0] | null }) => {
+   return (
+     <div className="p-4 md:p-8 h-full flex flex-col">
+       <div className="flex items-center justify-between mb-4 md:mb-6">
+         <h2 className="text-xl md:text-2xl font-light flex items-center gap-2"><Smartphone className="text-cyan-400" /> {t.runner || "Core Runner"}</h2>
+         <div className="flex gap-2">
+            <button className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded text-xs flex items-center gap-2 hover:bg-red-500/30"><Rocket size={14} /> {t.turbo_mode || "Turbo"}</button>
+            <button className="px-3 py-1.5 bg-white/10 text-white rounded text-xs flex items-center gap-2 hover:bg-white/20"><RefreshCw size={14} /> {t.hot_reload || "Reload"}</button>
+            <button className="px-3 py-1.5 bg-white/10 text-white rounded text-xs flex items-center gap-2 hover:bg-white/20"><VideoIcon size={14} /> {t.recording || "Rec"}</button>
+         </div>
+       </div>
+ 
+       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+          {/* Game Viewport */}
+          <div className="lg:col-span-2 glass-panel rounded-xl overflow-hidden relative group bg-black flex items-center justify-center">
+             <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 pointer-events-none">
+                <div className="bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] text-green-400 font-mono">144 FPS</div>
+                <div className="bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] text-blue-400 font-mono">RAM: 4.2GB</div>
+                <div className="bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] text-red-400 font-mono">CPU: 65°C</div>
+             </div>
+             
+             {activeGame ? (
+                <div className="relative w-full h-full bg-gray-900 flex flex-col items-center justify-center">
+                   {/* Simulated Game Screen */}
+                   <div className={cn("absolute inset-0 opacity-20 bg-gradient-to-br", activeGame.color)} />
+                   <div className="z-10 flex flex-col items-center animate-in zoom-in duration-500">
+                      <div className={cn("w-24 h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl mb-6 bg-gradient-to-br", activeGame.color)}>
+                         <Gamepad2 size={48} />
+                      </div>
+                      <h1 className="text-3xl font-bold text-white mb-2">{activeGame.name}</h1>
+                      <p className="text-emerald-400 font-mono text-sm animate-pulse">● LIVE SESSION ACTIVE</p>
+                   </div>
+                </div>
+             ) : (
+                <div className="text-center text-gray-600">
+                   <Smartphone size={48} className="mx-auto mb-2 opacity-20" />
+                   <p className="text-xs uppercase tracking-widest">Android Container Stream</p>
+                   <p className="text-[10px] mt-2">No game running</p>
+                </div>
+             )}
+          </div>
+ 
+          {/* Controls & Mapping */}
+          <div className="glass-panel rounded-xl p-4 flex flex-col gap-4 hidden lg:flex">
+             <h3 className="text-sm font-bold text-gray-400 uppercase">{t.keymapping || "Keymapping"}</h3>
+             
+             <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded">
+                   <div className="flex items-center gap-2"><Keyboard size={16} className="text-gray-400" /> <span className="text-sm">WASD Mode</span></div>
+                   <div className="w-8 h-4 bg-cyan-500/20 rounded-full border border-cyan-500/50 relative cursor-pointer">
+                      <div className="absolute right-1 top-0.5 w-3 h-3 bg-cyan-400 rounded-full" />
+                   </div>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded">
+                   <div className="flex items-center gap-2"><Mouse size={16} className="text-gray-400" /> <span className="text-sm">Mouse Aim</span></div>
+                   <div className="w-8 h-4 bg-cyan-500/20 rounded-full border border-cyan-500/50 relative cursor-pointer">
+                      <div className="absolute right-1 top-0.5 w-3 h-3 bg-cyan-400 rounded-full" />
+                   </div>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-white/5 rounded">
+                   <div className="flex items-center gap-2"><Gamepad2 size={16} className="text-gray-400" /> <span className="text-sm">{t.gamepad || "Gamepad"} (SDL2)</span></div>
+                   <div className="w-8 h-4 bg-white/10 rounded-full border border-white/20 relative cursor-pointer">
+                      <div className="absolute left-1 top-0.5 w-3 h-3 bg-gray-400 rounded-full" />
+                   </div>
+                </div>
+             </div>
+ 
+             <div className="mt-auto p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="text-xs text-gray-400 mb-2 uppercase">Active Profile</div>
+                <div className="font-bold text-white">{activeGame ? activeGame.name : "Default"} - Pro</div>
+                <div className="text-xs text-gray-500 mt-1">Mapped: 14 Keys</div>
+             </div>
+          </div>
+       </div>
+     </div>
+   );
+ };
+
 const AIModdingView = ({ t, isRTL }: { t: any, isRTL: boolean }) => {
   const [messages, setMessages] = useState<{role: 'user' | 'ai', text: string}[]>([
     { role: 'ai', text: isRTL ? "مرحباً! أنا مساعد التعديل الذكي. يمكنني مساعدتك في تحليل ملفات اللعبة وتعديل القيم مثل الجواهر والنقود. فقط ارفع ملف APK أو اسألني." : "Hello! I am your AI Modding Assistant. I can help you analyze game files and modify values like gems and coins. Just upload an APK or ask me." }
@@ -332,7 +465,6 @@ const AIModdingView = ({ t, isRTL }: { t: any, isRTL: boolean }) => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const model = ai.models.getGenerativeModel({ model: 'gemini-1.5-flash' });
       
       const prompt = `You are an expert Android Reverse Engineer and Modder. You speak ${isRTL ? 'Arabic' : 'English'}. 
       The user is asking for help modding an Android game. 
@@ -340,12 +472,17 @@ const AIModdingView = ({ t, isRTL }: { t: any, isRTL: boolean }) => {
       Keep it technical but easy to understand.
       User: ${userMsg}`;
 
-      const result = await model.generateContent(prompt);
-      const response = result.response.text();
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
       
-      setMessages(prev => [...prev, { role: 'ai', text: response }]);
+      const text = response.text;
+      
+      setMessages(prev => [...prev, { role: 'ai', text: text || (isRTL ? "لم يتم استلام رد." : "No response received.") }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: isRTL ? "عذراً، حدث خطأ في الاتصال بالخادم." : "Sorry, connection error." }]);
+      console.error("Gemini API Error:", error);
+      setMessages(prev => [...prev, { role: 'ai', text: isRTL ? "عذراً، حدث خطأ في الاتصال بالخادم. تأكد من مفتاح API." : "Sorry, connection error. Check API Key." }]);
     } finally {
       setLoading(false);
     }
@@ -692,6 +829,7 @@ export default function App() {
           "flex-row w-full items-center px-2 space-x-2 md:space-x-0 min-w-max"
         )}>
           <SidebarItem icon={Monitor} label={t.engine} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} accentColor={accentColor} isRTL={isRTL} />
+          <SidebarItem icon={Smartphone} label={t.runner || "Runner"} active={activeTab === 'runner'} onClick={() => setActiveTab('runner')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={FileCode} label={t.editor} active={activeTab === 'editor'} onClick={() => setActiveTab('editor')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Brain} label={t.ai_mod} active={activeTab === 'ai_mod'} onClick={() => setActiveTab('ai_mod')} accentColor={accentColor} isRTL={isRTL} />
           <SidebarItem icon={Wrench} label={t.store} active={activeTab === 'store'} onClick={() => setActiveTab('store')} accentColor={accentColor} isRTL={isRTL} />
@@ -752,7 +890,8 @@ export default function App() {
               transition={{ duration: 0.2 }}
               className="h-full overflow-hidden"
             >
-              {activeTab === 'dashboard' && <DashboardView activeGame={activeGame} onGameSelect={setActiveGame} t={t} />}
+              {activeTab === 'dashboard' && <DashboardView activeGame={activeGame} onGameSelect={setActiveGame} onOpenRunner={() => setActiveTab('runner')} t={t} />}
+              {activeTab === 'runner' && <CoreRunnerView t={t} activeGame={activeGame} />}
               {activeTab === 'editor' && <VisualEditorView t={t} />}
               {activeTab === 'multi' && <MultiInstanceView />}
               {activeTab === 'ai_mod' && <AIModdingView t={t} isRTL={isRTL} />}
